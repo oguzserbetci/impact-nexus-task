@@ -11,6 +11,16 @@ import argparse
 URL_REGEX = r"https?://.*/[^/]*(about)[^/]*$"
 MISSION_WORDS = ("mission", "vision", "idea", "goal", "solve", "believe")
 
+nlp = spacy.load("en_core_web_md")
+
+is_mission_getter = lambda token: token.lemma_.lower() in MISSION_WORDS
+has_mission_getter = lambda obj: any(
+    [t.lemma_.lower() in MISSION_WORDS for t in obj]
+)
+
+Token.set_extension("is_mission_word", getter=is_mission_getter)
+Span.set_extension("has_mission_word", getter=has_mission_getter)
+
 
 def get_webpage_with_regex(scrape, regex):
     contents = []
@@ -75,21 +85,13 @@ def get_scrapes(path):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Extract mission from scrapes.')
 
-    parser.add_argument('--input', default='data/')
-    parser.add_argument('--output', default='output/')
+    parser.add_argument('--input', default='data/',
+                        help='Input folder where JSON files from scrape are stored')
+    parser.add_argument('--output', default='output/',
+                        help='Output folder where mission sentences are extracted to')
 
     args = parser.parse_args()
     os.makedirs(args.output + "/missions/", exist_ok=True)
-
-    nlp = spacy.load("en_core_web_md")
-
-    is_mission_getter = lambda token: token.lemma_.lower() in MISSION_WORDS
-    has_mission_getter = lambda obj: any(
-        [t.lemma_.lower() in MISSION_WORDS for t in obj]
-    )
-
-    Token.set_extension("is_mission_word", getter=is_mission_getter)
-    Span.set_extension("has_mission_word", getter=has_mission_getter)
 
     for company, scrape in get_scrapes(args.input):
         contents = get_contents(scrape)
